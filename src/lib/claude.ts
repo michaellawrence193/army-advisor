@@ -20,6 +20,11 @@ export type PlaystyleAnswers = {
     goals: string
 }
 
+export type Message = {
+    role: 'user' | 'assistant'
+    content: string
+}
+
 export async function getArmyAdvice(
     faction: Faction,
     answers: PlaystyleAnswers,
@@ -47,57 +52,22 @@ export async function getArmyAdvice(
 
     Be specific, encouraging, and practical. Format with clear sections.`
 
-    const response = await fetch('/api/anthropic/v1/messages', {
+    const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
-        },
+            'Content-Type': 'application/json' },
         body: JSON.stringify({
             model: 'claude-sonnet-4-6',
             max_tokens: 1024,
-
-            // stream: true tells the API to send tokens as they're generated
-            // instead of waiting for the full response — this is what makes
-            // the text appear word by word in the UI
-            stream: true,
             messages: [{ role: 'user', content: prompt }],
         }),
     })
 
     if (!response.ok) throw new Error('API request failed')
     
-    const reader = response.body!.getReader()
-    const decoder = new TextDecoder()
-
-    // Read the response as a stream of Server-Sent Events (SSE)
-    // Each chunk is a line starting with "data: " containing a JSON delta
-    while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const chunk = decoder.decode(value)
-        const lines = chunk.split('\n').filter(line => line.startsWith('data: '))
-
-        for (const line of lines) {
-            const data = line.slice(6)
-            if (data === '[DONE]') return
-            try {
-                const parsed = JSON.parse(data)
-                if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
-                    onChunk(parsed.delta.text)
-                }
-        } catch {
-            // skip malformed chunks
-        }
-        }
-    }
-}
-
-export type Message = {
-    role: 'user' | 'assistant'
-    content: string
+    const data = await response.json()
+    // Fire the callback wuth the full response text
+    onChunk(data.content[0].text)
 }
 
 export async function sendFollowUp(
@@ -109,17 +79,13 @@ export async function sendFollowUp(
     You have already provided initial army advice to this player.
     Answer their follow-up questions with specific, practical advice. Be concise but thorough.`
 
-    const response = await fetch('/api/anthropic/v1/messages', {
+    const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
-        },
+            'Content-Type': 'application/json' },
         body: JSON.stringify({
             model: 'claude-sonnet-4-6',
             max_tokens: 1024,
-            stream: true,
             system: systemPrompt,
             messages: messages.map(m => ({ role: m.role, content: m.content })),
         }),
@@ -127,27 +93,6 @@ export async function sendFollowUp(
 
     if (!response.ok) throw new Error('API request failed')
 
-    const reader = response.body!.getReader()
-    const decoder = new TextDecoder()
-
-    while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const chunk = decoder.decode(value)
-        const lines = chunk.split('\n').filter(line => line.startsWith('data: '))
-
-        for (const line of lines) {
-            const data = line.slice(6)
-            if (data === '[DONE]') return
-            try {
-                const parsed = JSON.parse(data)
-                if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
-                    onChunk(parsed.delta.text)
-                }
-            } catch {
-                // skip malformed chunks
-            }
-        }
-    }
+    const data = await response.json()
+    onChunk(data.content[0].text)
 }

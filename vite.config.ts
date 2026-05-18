@@ -11,7 +11,7 @@ export default defineConfig({
     {
       name: 'anthropic-proxy',
       configureServer(server) {
-        server.middlewares.use('/api/anthropic', async (req, res) => {
+        server.middlewares.use('/api/chat', async (req, res) => {
           const chunks: Buffer[] = []
           req.on('data', (chunk: Buffer) => chunks.push(chunk))
           req.on('end', async () => {
@@ -26,16 +26,11 @@ export default defineConfig({
                 },
                 body,
               })
+              const data = await response.json()
               res.statusCode = response.status
-              res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json')
-              const reader = response.body!.getReader()
-              while (true) {
-                const { done, value } = await reader.read()
-                if (done) break
-                res.write(value)
-              }
-              res.end()
-            } catch (err) {
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify(data))
+            } catch (error) {
               res.statusCode = 500
               res.end(JSON.stringify({ error: 'Proxy error' }))
             }
