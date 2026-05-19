@@ -67,25 +67,6 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## Project Structure
-army-advisor/
-├── api/
-│   └── chat.ts          # Vercel serverless function — secure API proxy
-├── src/
-│   ├── components/
-│   │   ├── FactionPicker.tsx   # Step 1 — faction selection grid
-│   │   ├── PlaystyleForm.tsx   # Step 2 — playstyle questionnaire
-│   │   └── AdvicePanel.tsx     # Step 3 — AI response + follow-up chat
-│   ├── lib/
-│   │   ├── claude.ts           # Anthropic API integration
-│   │   └── factions.ts         # Faction data and types
-│   ├── App.tsx                 # Root component and step state
-│   ├── index.css               # Global styles
-│   └── main.tsx                # App entry point
-└── vercel.json                 # Vercel deployment config
-
----
-
 ## Disclaimer
 
 This app uses AI-generated advice for entertainment and hobby planning purposes. Always verify points costs against the official Warhammer Community points documents and your local game store's house rules. Warhammer 40,000 is © Games Workshop.
